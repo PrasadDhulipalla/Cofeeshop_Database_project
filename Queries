@@ -1,0 +1,69 @@
+-- 1. List all ingredients
+SELECT * FROM ingredients;
+
+-- 2. View all staff with their positions and salaries
+SELECT staff_id, first_name, last_name, position, sal_per_hour FROM staff;
+
+-- 3. View all shifts and their timings
+SELECT * FROM shift;
+
+-- 4. Show all entries in inventory with ingredient names
+SELECT i.ing_name, inv.quantity
+FROM inventory inv
+JOIN ingredients i ON inv.ing_id = i.ing_id;
+
+
+-- 5. Number of staff members assigned to each shift on a date
+SELECT r.date, s.day_of_week, COUNT(DISTINCT r.staff_id) AS total_staff
+FROM rota r
+JOIN shift s ON r.shift_id = s.shift_id
+GROUP BY r.date, s.day_of_week;
+
+-- 6. Ingredient quantities used in each recipe
+SELECT r.recipe_id, i.ing_name, r.quantity
+FROM recipe r
+JOIN ingredients i ON r.ing_id = i.ing_id
+ORDER BY r.recipe_id;
+
+-- 7. Staff schedule (who worked when and on which recipe)
+SELECT s.first_name, s.last_name, r.date, sh.day_of_week, c.recipe_id
+FROM coffeeshop c
+JOIN rota r ON c.rota_id = r.rota_id
+JOIN staff s ON c.staff_id = s.staff_id
+JOIN shift sh ON c.shift_id = sh.shift_id;
+
+-- 8. Inventory status with ingredients not used in any recipe
+SELECT i.ing_name, inv.quantity
+FROM inventory inv
+JOIN ingredients i ON inv.ing_id = i.ing_id
+LEFT JOIN recipe r ON i.ing_id = r.ing_id
+WHERE r.ing_id IS NULL;
+
+
+-- 9. Total hours worked by each staff member across all shifts
+SELECT s.staff_id, s.first_name, s.last_name,
+       SUM(EXTRACT(EPOCH FROM (sh.end_time - sh.start_time)) / 3600) AS total_hours
+FROM rota r
+JOIN staff s ON r.staff_id = s.staff_id
+JOIN shift sh ON r.shift_id = sh.shift_id
+GROUP BY s.staff_id, s.first_name, s.last_name;
+
+-- 10. Estimated salary paid to each staff member based on worked hours
+SELECT s.staff_id, s.first_name, s.last_name,
+       ROUND(SUM(EXTRACT(EPOCH FROM (sh.end_time - sh.start_time)) / 3600 * s.sal_per_hour), 2) AS total_salary
+FROM rota r
+JOIN staff s ON r.staff_id = s.staff_id
+JOIN shift sh ON r.shift_id = sh.shift_id
+GROUP BY s.staff_id, s.first_name, s.last_name;
+
+-- 11. Find recipes that use more than 3 ingredients
+SELECT recipe_id, COUNT(*) AS total_ingredients
+FROM recipe
+GROUP BY recipe_id
+HAVING COUNT(*) > 3;
+
+-- 12. List of all ingredients that are used in more than 2 recipes
+SELECT ing_id, COUNT(DISTINCT recipe_id) AS recipes_used_in
+FROM recipe
+GROUP BY ing_id
+HAVING COUNT(DISTINCT recipe_id) > 2;
